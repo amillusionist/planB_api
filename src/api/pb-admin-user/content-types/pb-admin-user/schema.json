@@ -1,0 +1,31 @@
+{
+  "kind": "collectionType",
+  "collectionName": "pb_admin_users",
+  "info": {
+    "singularName": "pb-admin-user",
+    "pluralName": "pb-admin-users",
+    "displayName": "PB Admin User"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Username": {
+      "type": "string"
+    },
+    "Email": {
+      "type": "email"
+    },
+    "Password": {
+      "type": "password"
+    },
+    "Role": {
+      "type": "enumeration",
+      "enum": [
+        "admin",
+        "manager"
+      ]
+    }
+  }
+}
