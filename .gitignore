@@ -1,7 +1,7 @@
 # Dependencies
-/node_modules
-/.pnp
-.pnp.js
+/node_modules/
+/.pnp/
+/.pnp.js
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
@@ -14,19 +14,19 @@ package-lock.json
 .env.production
 
 # Logs
-/logs
+/logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
 # Testing
-/coverage
-.nyc_output
+/coverage/
+/.nyc_output/
 
 # IDE
-.idea
-.vscode
+.idea/
+.vscode/
 *.swp
 *.swo
 *.swn
@@ -41,15 +41,15 @@ ehthumbs.db
 Desktop.ini
 
 # Build
-/dist
-/build
-.next
-out
+/dist/
+/build/
+/.next/
+/out/
 
 # Cache
-.cache
-.npm
-.eslintcache
+.cache/
+/.npm/
+/.eslintcache
 .stylelintcache
 
 # Misc
@@ -58,4 +58,4 @@ out
 *.pid.lock
 .npmrc
 .yarnrc
-yarn.lock 
+yarn.lock

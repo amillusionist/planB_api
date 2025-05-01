@@ -1,3 +1,8 @@
+/**
+ * Main server file for Plan B Cafe API
+ * This file sets up the Express server with all necessary middleware and configurations
+ */
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -11,8 +16,14 @@ const compression = require('compression');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
-const errorHandler = require('./middleware/error');
+const { errorHandler } = require('./utils/errorResponse');
 const { sanitizeUserInput } = require('./middleware/validator');
+const { protect } = require('./middleware/auth');
+const connectDB = require('./config/db');
+const routes = require('./config/routes');
+const { verifyFirebaseToken } = require('./middleware/firebaseAuth');
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +37,15 @@ const {
 } = process.env;
 
 const app = express();
+
+// Basic error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({
+        success: false,
+        error: 'Internal Server Error'
+    });
+});
 
 // Security middleware
 app.use(helmet({
@@ -74,7 +94,7 @@ app.use(limiter);
 // Special rate limiting for sensitive routes
 const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5, // limit each IP to 5 requests per hour
+    max: 50, // limit each IP to 5 requests per hour
     message: 'Too many login attempts, please try again after an hour'
 });
 
@@ -97,43 +117,48 @@ if (NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
 
-// Database connection with improved options
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-    maxPoolSize: 10
-})
-.then(() => console.log('MongoDB Connected'))
-.catch(err => {
-    console.error('MongoDB Connection Error:', err);
-    process.exit(1);
-});
-
 // Mount routes
-app.use('/api', require('./routes'));
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/menu', require('./routes/menu'));
 
 // Error handling middleware
-app.use(errorHandler);
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-    console.log('Unhandled Rejection! Shutting down...');
-    console.log(err.name, err.message);
-    process.exit(1);
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({
+        success: false,
+        error: err.message || 'Internal Server Error'
+    });
 });
 
 // Start server
 const server = app.listen(PORT, () => {
     console.log(`Server running in ${NODE_ENV} mode on port ${PORT}`);
+    console.log(`API available at http://localhost:${PORT}/api`);
+}).on('error', (err) => {
+    console.error('Server failed to start:', err);
+    if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Please try a different port.`);
+    }
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Promise Rejection:', err);
+    server.close(() => process.exit(1));
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-    console.log('Uncaught Exception! Shutting down...');
-    console.log(err.name, err.message);
-    server.close(() => {
-        process.exit(1);
-    });
-}); 
+    console.error('Uncaught Exception:', err);
+    server.close(() => process.exit(1));
+});
+
+// Keep the process alive
+setInterval(() => {
+    if (process.memoryUsage().heapUsed > 500 * 1024 * 1024) {
+        console.log('Memory usage high, performing garbage collection');
+        global.gc();
+    }
+}, 30000); 

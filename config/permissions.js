@@ -2,7 +2,8 @@ module.exports = {
     roles: {
         superadmin: ['superadmin', 'admin', 'user'],
         admin: ['admin', 'user'],
-        user: ['user']
+        user: ['user'],
+        guest: ['guest']
     },
 
     // Define which roles can access which features
@@ -24,7 +25,7 @@ module.exports = {
             deleteUser: ['superadmin', 'admin']
         },
         menu: {
-            getMenuItems: ['superadmin', 'admin', 'user'],
+            getMenuItems: ['superadmin', 'admin', 'user', 'guest'],
             createMenuItem: ['superadmin', 'admin'],
             updateMenuItem: ['superadmin', 'admin'],
             deleteMenuItem: ['superadmin', 'admin']
@@ -48,7 +49,7 @@ module.exports = {
             }
         },
         rooms: {
-            getRooms: ['superadmin', 'admin', 'user'],
+            getRooms: ['superadmin', 'admin', 'user', 'guest'],
             createRoom: ['superadmin', 'admin'],
             updateRoom: ['superadmin', 'admin'],
             deleteRoom: ['superadmin', 'admin']

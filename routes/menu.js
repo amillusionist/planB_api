@@ -1,27 +1,22 @@
 const express = require('express');
 const {
-    getMenus,
-    getMenu,
-    createMenu,
-    updateMenu,
-    deleteMenu,
-    uploadMenuPhoto,
-    deleteMenuPhoto
+    getMenuItems,
+    createMenuItem,
+    updateMenuItem,
+    deleteMenuItem
 } = require('../controllers/menu');
 
 const router = express.Router();
 
-const { protect, authorize } = require('../middleware/auth');
+const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
 
 // Public routes
-router.get('/', getMenus);
-router.get('/:id', getMenu);
+router.get('/', getMenuItems);
+router.get('/:id', getMenuItems);
 
 // Admin routes
-router.post('/', protect, authorize('admin'), createMenu);
-router.put('/:id', protect, authorize('admin'), updateMenu);
-router.delete('/:id', protect, authorize('admin'), deleteMenu);
-router.put('/:id/photo', protect, authorize('admin'), uploadMenuPhoto);
-router.delete('/:id/photo', protect, authorize('admin'), deleteMenuPhoto);
+router.post('/', verifyFirebaseToken, createMenuItem);
+router.put('/:id', verifyFirebaseToken, updateMenuItem);
+router.delete('/:id', verifyFirebaseToken, deleteMenuItem);
 
 module.exports = router; 

@@ -1,9 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth');
-const routes = require('../config/routes');
-const registerRoutes = require('../utils/routeRegister');
+const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
 
-registerRoutes(router, routes.auth, authController);
+// Firebase auth routes
+router.post('/verify', verifyFirebaseToken, authController.verifyFirebaseToken);
+router.put('/complete-profile', verifyFirebaseToken, authController.completeProfile);
+router.get('/me', verifyFirebaseToken, authController.getMe);
+
+// Test route (for development only)
+router.post('/test-token', authController.generateTestToken);
 
 module.exports = router; 

@@ -21,11 +21,21 @@ const sendTokenResponse = (res, user, statusCode = 200) => {
     try {
         const token = user.getSignedJwtToken();
         const options = {
-            expires: new Date(
-                Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000
-            ),
+            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
             httpOnly: true,
             ...(process.env.NODE_ENV === 'production' && { secure: true })
+        };
+
+        // Prepare user data to send
+        const userData = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            role: user.role,
+            profileCompleted: user.profileCompleted,
+            addresses: user.addresses,
+            paymentMethods: user.paymentMethods
         };
 
         return res
@@ -33,7 +43,8 @@ const sendTokenResponse = (res, user, statusCode = 200) => {
             .cookie('token', token, options)
             .json({
                 success: true,
-                token
+                token,
+                user: userData
             });
     } catch (err) {
         console.error('Error in sendTokenResponse:', err);

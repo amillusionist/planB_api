@@ -3,26 +3,17 @@ const {
     getOrders,
     getOrder,
     createOrder,
-    updateOrder,
-    deleteOrder,
-    getMyOrders,
-    updateOrderStatus,
-    updateDeliveryStatus
-} = require('../controllers/orders');
+    updateOrderStatus
+} = require('../controllers/order');
 
 const router = express.Router();
 
-const { protect, authorize } = require('../middleware/auth');
+const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
 
 // User routes
-router.post('/', protect, createOrder);
-router.get('/my-orders', protect, getMyOrders);
-router.get('/my-orders/:id', protect, getOrder);
-
-// Admin routes
-router.get('/', protect, authorize('admin'), getOrders);
-router.put('/:id/status', protect, authorize('admin'), updateOrderStatus);
-router.put('/:id/delivery', protect, authorize('admin'), updateDeliveryStatus);
-router.delete('/:id', protect, authorize('admin'), deleteOrder);
+router.post('/', verifyFirebaseToken, createOrder);
+router.get('/', verifyFirebaseToken, getOrders);
+router.get('/:id', verifyFirebaseToken, getOrder);
+router.put('/:id/status', verifyFirebaseToken, updateOrderStatus);
 
 module.exports = router; 

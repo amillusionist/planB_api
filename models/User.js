@@ -2,16 +2,80 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const AddressSchema = new mongoose.Schema({
+    type: {
+        type: String,
+        enum: ['home', 'work', 'other'],
+        default: 'home'
+    },
+    street: {
+        type: String,
+        required: [true, 'Please add street address']
+    },
+    city: {
+        type: String,
+        required: [true, 'Please add city']
+    },
+    state: {
+        type: String,
+        required: [true, 'Please add state']
+    },
+    pincode: {
+        type: String,
+        required: [true, 'Please add pincode']
+    },
+    isDefault: {
+        type: Boolean,
+        default: false
+    }
+});
+
+const PaymentMethodSchema = new mongoose.Schema({
+    type: {
+        type: String,
+        enum: ['card', 'upi', 'wallet'],
+        required: true
+    },
+    details: {
+        // For card
+        cardNumber: String,
+        cardHolder: String,
+        expiryMonth: String,
+        expiryYear: String,
+        // For UPI
+        upiId: String,
+        // For wallet
+        walletType: String,
+        walletId: String
+    },
+    isDefault: {
+        type: Boolean,
+        default: false
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    }
+});
+
 const UserSchema = new mongoose.Schema({
+    firebaseUid: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    phoneNumber: {
+        type: String,
+        required: true,
+        unique: true
+    },
     name: {
         type: String,
-        required: [true, 'Please add a name'],
         trim: true,
         maxlength: [50, 'Name cannot be more than 50 characters']
     },
     email: {
         type: String,
-        required: [true, 'Please add an email'],
         unique: true,
         match: [
             /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
@@ -20,41 +84,16 @@ const UserSchema = new mongoose.Schema({
         lowercase: true,
         trim: true
     },
-    password: {
-        type: String,
-        required: [true, 'Please add a password'],
-        minlength: [8, 'Password must be at least 8 characters long'],
-        select: false,
-        validate: {
-            validator: function(v) {
-                return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(v);
-            },
-            message: 'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character'
-        }
-    },
-    phone: {
-        type: String,
-        required: [true, 'Please add a phone number'],
-        match: [/^[0-9]{10}$/, 'Please add a valid 10-digit phone number']
-    },
-    address: {
-        type: String,
-        required: [true, 'Please add an address'],
-        trim: true
-    },
+    addresses: [AddressSchema],
+    paymentMethods: [PaymentMethodSchema],
     role: {
         type: String,
-        enum: ['user', 'admin'],
+        enum: ['user', 'admin', 'superadmin'],
         default: 'user'
     },
-    resetPasswordToken: String,
-    resetPasswordExpire: Date,
-    loginAttempts: {
-        type: Number,
-        default: 0
-    },
-    lockUntil: {
-        type: Date
+    profileCompleted: {
+        type: Boolean,
+        default: false
     },
     lastLogin: {
         type: Date
@@ -64,6 +103,11 @@ const UserSchema = new mongoose.Schema({
         default: Date.now
     }
 });
+
+// Add indexes
+UserSchema.index({ phoneNumber: 1 });
+UserSchema.index({ email: 1 });
+UserSchema.index({ firebaseUid: 1 });
 
 // Encrypt password using bcrypt
 UserSchema.pre('save', async function(next) {
@@ -76,9 +120,11 @@ UserSchema.pre('save', async function(next) {
 
 // Sign JWT and return
 UserSchema.methods.getSignedJwtToken = function() {
-    return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRES_IN
-    });
+    return jwt.sign(
+        { id: this._id, role: this.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '30d' } // Token expires in 30 days
+    );
 };
 
 // Match user entered password to hashed password in database

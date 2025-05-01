@@ -175,7 +175,8 @@ const validate = (req, res, next) => {
     next();
 };
 
-exports.sanitizeUserInput = (req, res, next) => {
+// Sanitize user input middleware
+const sanitizeUserInput = (req, res, next) => {
     // Sanitize all string inputs
     if (req.body) {
         Object.keys(req.body).forEach(key => {
@@ -196,5 +197,6 @@ module.exports = {
     roomRules,
     roomBookingRules,
     feedbackRules,
-    validate
+    validate,
+    sanitizeUserInput
 }; 
