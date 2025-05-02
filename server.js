@@ -1,8 +1,3 @@
-/**
- * Main server file for Plan B Cafe API
- * This file sets up the Express server with all necessary middleware and configurations
- */
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -43,6 +38,7 @@ const {
     MONGODB_URI = 'mongodb://localhost:27017/planb_cafe',
     CLIENT_URL = 'http://localhost:3000'
 } = process.env;
+
 
 const app = express();
 
@@ -131,6 +127,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/categorey', require('./routes/categorey'));
+app.use('/api/payment', require('./routes/payment'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
