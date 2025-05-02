@@ -130,6 +130,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/menu', require('./routes/menu'));
+app.use('/api/categorey', require('./routes/categorey'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

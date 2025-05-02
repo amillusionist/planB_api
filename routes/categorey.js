@@ -1,18 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
-const categoreyController = require('../controllers/categorey');
+const { getCategories, getCategory, createCategory, updateCategory, deleteCategory } = require('../controllers/categorey');
 
 // Public routes (no authentication required)
-router.get('/', categoreyController.getAllCategories);
-router.get('/:id', categoreyController.getCategory);
+router.get('/', getCategories);
+router.get('/:id', getCategory);
 
 // Protected routes (only superadmin)
 router.use(protect); // Protect all routes after this middleware
 
 // Only superadmin can access these routes
-router.post('/', categoreyController.createCategory);
-router.patch('/:id', categoreyController.updateCategory);
-router.delete('/:id', categoreyController.deleteCategory);
+router.post('/', createCategory);
+router.patch('/:id', updateCategory);
+router.delete('/:id', deleteCategory);
 
 module.exports = router;
