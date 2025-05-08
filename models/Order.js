@@ -27,7 +27,7 @@ const AddressSchema = new mongoose.Schema({
 const PaymentDetailsSchema = new mongoose.Schema({
     paymentMethod: {
         type: String,
-        enum: ['credit_card', 'cash_on_delivery', 'upi', 'wallet'],
+        enum: ['online', 'cash'],
         required: true
     },
     transactionId: String,
@@ -68,6 +68,17 @@ const OrderSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    orderType: {
+        type: String,
+        enum: ['dine_in', 'takeaway', 'delivery' , 'dinein'],
+        required: true
+    },
+    tableNumber: {
+        type: String,
+        required: function() {
+            return this.orderType === 'dine_in';
+        }
+    },
     user: {
         userId: {
             type: mongoose.Schema.ObjectId,
@@ -100,7 +111,7 @@ const OrderSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'failed', 'refunded'],
+        enum: ['pending', 'paid', 'Paid' , 'failed', 'refunded'],
         default: 'pending'
     },
     paymentDetails: PaymentDetailsSchema,

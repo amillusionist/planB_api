@@ -20,12 +20,19 @@ exports.verifyFirebaseToken = async (req, res, next) => {
         // Verify Firebase token
         const decodedToken = await admin.auth().verifyIdToken(token);
         
+        // Add Firebase user info to request
+        req.firebaseUser = {
+            uid: decodedToken.uid,
+            phone_number: decodedToken.phone_number
+        };
+        
         // Find or create user in database
         let user = await User.findOne({ phoneNumber: decodedToken.phone_number });
         
         if (!user) {
             // Create new user if doesn't exist
             user = await User.create({
+                firebaseUid: decodedToken.uid,
                 phoneNumber: decodedToken.phone_number,
                 role: 'user'
             });

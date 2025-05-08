@@ -1,6 +1,6 @@
 const Order = require('../models/Order');
 const User = require('../models/User');
-const ErrorResponse = require('../utils/errorResponse');
+const AppError = require('../utils/appError');
 
 // @desc    Get all orders
 // @route   GET /api/orders
@@ -14,7 +14,7 @@ exports.getOrders = async (req, res, next) => {
         } else {
             query = Order.find();
         }
-        
+
         const orders = await query.sort('-createdAt');
         res.status(200).json({
             success: true,
@@ -31,38 +31,49 @@ exports.getOrders = async (req, res, next) => {
 // @access  Private
 exports.createOrder = async (req, res, next) => {
     try {
+        console.log('Received order creation request:', req.body);
+        
         // Get user details
         const user = await User.findById(req.user.id);
         if (!user) {
-            return next(new ErrorResponse('User not found', 404));
+            return next(new AppError('User not found', 404));
         }
 
         // Prepare order data
         const orderData = {
+            orderId: req.body.orderId,
+            orderType: req.body.orderType,
+            tableNumber: req.body.tableNumber,
             user: {
                 userId: user._id,
                 name: user.name,
                 email: user.email,
                 phone: user.phoneNumber,
-                address: req.body.address
+                address: req.body.address,
             },
             items: req.body.items.map(item => ({
                 menuItem: item.menuItem,
                 foodName: item.foodName,
                 quantity: item.quantity,
                 foodPrice: item.foodPrice,
-                totalPrice: item.quantity * item.foodPrice
+                totalPrice: item.totalPrice,
             })),
             orderTotal: req.body.orderTotal,
             tax: req.body.tax || 0,
             shipping: req.body.shipping || 0,
             discount: req.body.discount || 0,
-            notes: req.body.notes,
+            notes: req.body.notes || "",
             paymentDetails: {
-                paymentMethod: req.body.paymentMethod,
-                amountPaid: req.body.amountPaid || 0
+                paymentMethod: req.body.paymentDetails?.paymentMethod || "cash",
+                amountPaid: req.body.paymentDetails?.amountPaid || 0,
+                transactionId: req.body.paymentDetails?.transactionId || "",
+                skipCashPaymentId: req.body.paymentDetails?.skipCashPaymentId || "",
+                status: req.body.paymentDetails?.status || "new",
+                payUrl: req.body.paymentDetails?.payUrl || "",
             }
         };
+
+        console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
 
         const order = await Order.create(orderData);
 
@@ -71,6 +82,7 @@ exports.createOrder = async (req, res, next) => {
             data: order
         });
     } catch (err) {
+        console.error('Error creating order:', err);
         next(err);
     }
 };
@@ -82,11 +94,11 @@ exports.getOrder = async (req, res, next) => {
     try {
         const order = await Order.findOne({ orderId: req.params.id });
         if (!order) {
-            return next(new ErrorResponse(`Order not found with id of ${req.params.id}`, 404));
+            return next(new AppError(`Order not found with id of ${req.params.id}`, 404));
         }
         // Make sure user is order owner or admin
         if (order.user.userId.toString() !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-            return next(new ErrorResponse(`Not authorized to access this order`, 401));
+            return next(new AppError(`Not authorized to access this order`, 401));
         }
         res.status(200).json({
             success: true,
@@ -104,7 +116,7 @@ exports.updateOrderStatus = async (req, res, next) => {
     try {
         const order = await Order.findOne({ orderId: req.params.id });
         if (!order) {
-            return next(new ErrorResponse(`Order not found with id of ${req.params.id}`, 404));
+            return next(new AppError(`Order not found with id of ${req.params.id}`, 404));
         }
 
         // Update order status

@@ -74,15 +74,41 @@ const menuRules = {
 // Order validation rules
 const orderRules = {
     create: [
+        body('orderType')
+            .isIn(['dine_in', 'dinein', 'takeaway', 'delivery'])
+            .withMessage('Order type must be dine_in/dinein, takeaway, or delivery')
+            .custom((value) => {
+                // Convert 'dinein' to 'dine_in' for consistency
+                if (value === 'dinein') {
+                    return 'dine_in';
+                }
+                return value;
+            }),
+        body('tableNumber')
+            .if(body('orderType').equals('dine_in'))
+            .notEmpty()
+            .withMessage('Table number is required for dine-in orders'),
         body('items')
-            .isArray({ min: 1, max: 10 })
-            .withMessage('Order must contain between 1 and 10 items'),
-        body('items.*.menuItemId')
-            .isMongoId()
-            .withMessage('Invalid menu item ID'),
+            .isArray({ min: 1 })
+            .withMessage('Order must contain at least 1 item'),
+        body('items.*.menuItem')
+            .notEmpty()
+            .withMessage('Menu item is required'),
+        body('items.*.foodName')
+            .notEmpty()
+            .withMessage('Food name is required'),
         body('items.*.quantity')
-            .isInt({ min: 1, max: 10 })
-            .withMessage('Quantity must be between 1 and 10')
+            .isInt({ min: 1 })
+            .withMessage('Quantity must be at least 1'),
+        body('items.*.foodPrice')
+            .isFloat({ min: 0 })
+            .withMessage('Food price must be a positive number'),
+        body('items.*.totalPrice')
+            .isFloat({ min: 0 })
+            .withMessage('Total price must be a positive number'),
+        body('orderTotal')
+            .isFloat({ min: 0 })
+            .withMessage('Order total must be a positive number')
     ]
 };
 
@@ -166,6 +192,8 @@ const feedbackRules = {
 const validate = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+        console.log('Validation Errors:', errors.array());
+        console.log('Request Body:', req.body);
         return res.status(400).json({
             success: false,
             message: messages.common.validationError,
