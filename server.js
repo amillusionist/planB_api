@@ -79,7 +79,7 @@ app.use(mongoSanitize());
 
 // CORS configuration
 app.use(cors({
-    origin: CLIENT_URL,
+    origin: ['https://walrus-app-at4vl.ondigitalocean.app', 'http://localhost:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -128,6 +128,9 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/categorey', require('./routes/categorey'));
 app.use('/api/payment', require('./routes/payment'));
+app.use('/api/room-bookings', require('./routes/roomBooking'));
+app.use('/api/rooms', require('./routes/rooms'));
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {

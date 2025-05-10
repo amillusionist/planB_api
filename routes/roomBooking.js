@@ -10,16 +10,17 @@ const {
 
 const router = express.Router();
 
-const { protect, authorize } = require('../middleware/auth');
+const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
+const { authorize } = require('../middleware/auth');
 
 // User routes
-router.post('/', protect, createRoomBooking);
-router.get('/my-bookings', protect, getMyRoomBookings);
-router.get('/:id', protect, getRoomBooking);
-router.delete('/:id', protect, deleteRoomBooking);
+router.post('/', verifyFirebaseToken, createRoomBooking);
+router.get('/my-bookings', verifyFirebaseToken, getMyRoomBookings);
+router.get('/:id', verifyFirebaseToken, getRoomBooking);
+router.delete('/:id', verifyFirebaseToken, deleteRoomBooking);
 
 // Admin routes
-router.get('/', protect, authorize('admin'), getRoomBookings);
-router.put('/:id/status', protect, authorize('admin'), updateRoomBookingStatus);
+router.get('/', verifyFirebaseToken, authorize('admin'), getRoomBookings);
+router.put('/:id/status', verifyFirebaseToken, authorize('admin'), updateRoomBookingStatus);
 
 module.exports = router; 

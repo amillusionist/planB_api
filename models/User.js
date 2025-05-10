@@ -84,6 +84,10 @@ const UserSchema = new mongoose.Schema({
         lowercase: true,
         trim: true
     },
+    password: {
+        type: String,
+        select: false
+    },
     addresses: [AddressSchema],
     paymentMethods: [PaymentMethodSchema],
     role: {

@@ -9,7 +9,7 @@ const {
     updateRoomAvailability,
     uploadRoomPhoto,
     deleteRoomPhoto
-} = require('../controllers/rooms');
+} = require('../controllers/room');
 
 const router = express.Router();
 
@@ -21,11 +21,11 @@ router.get('/available', getAvailableRooms);
 router.get('/:id', getRoom);
 
 // Admin routes
-router.post('/', protect, authorize('admin'), createRoom);
-router.put('/:id', protect, authorize('admin'), updateRoom);
-router.delete('/:id', protect, authorize('admin'), deleteRoom);
-router.put('/:id/availability', protect, authorize('admin'), updateRoomAvailability);
-router.put('/:id/photo', protect, authorize('admin'), uploadRoomPhoto);
-router.delete('/:id/photo', protect, authorize('admin'), deleteRoomPhoto);
+router.post('/', protect, authorize('superadmin', 'admin'), createRoom);
+router.put('/:id', protect, authorize('superadmin', 'admin'), updateRoom);
+router.delete('/:id', protect, authorize('superadmin', 'admin'), deleteRoom);
+router.put('/:id/availability', protect, authorize('superadmin', 'admin'), updateRoomAvailability);
+router.put('/:id/photo', protect, authorize('superadmin', 'admin'), uploadRoomPhoto);
+router.delete('/:id/photo', protect, authorize('superadmin', 'admin'), deleteRoomPhoto);
 
 module.exports = router; 
