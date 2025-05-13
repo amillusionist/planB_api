@@ -91,9 +91,9 @@ const orderRules = {
         body('items')
             .isArray({ min: 1 })
             .withMessage('Order must contain at least 1 item'),
-        body('items.*.menuItem')
+        body('items.*.foodSlug')
             .notEmpty()
-            .withMessage('Menu item is required'),
+            .withMessage('Food slug is required'),
         body('items.*.foodName')
             .notEmpty()
             .withMessage('Food name is required'),
@@ -108,7 +108,22 @@ const orderRules = {
             .withMessage('Total price must be a positive number'),
         body('orderTotal')
             .isFloat({ min: 0 })
-            .withMessage('Order total must be a positive number')
+            .withMessage('Order total must be a positive number'),
+        body('paymentMethod')
+            .isIn(['online', 'cash'])
+            .withMessage('Payment method must be online or cash'),
+        body('payment.transactionId')
+            .if(body('paymentMethod').equals('online'))
+            .notEmpty()
+            .withMessage('Transaction ID is required for online payments'),
+        body('payment.payUrl')
+            .if(body('paymentMethod').equals('online'))
+            .notEmpty()
+            .withMessage('Payment URL is required for online payments'),
+        body('payment.status')
+            .if(body('paymentMethod').equals('online'))
+            .isIn(['new', 'pending', 'paid', 'failed', 'refunded'])
+            .withMessage('Invalid payment status')
     ]
 };
 

@@ -35,13 +35,19 @@ const PaymentDetailsSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    paymentDate: Date
+    paymentDate: Date,
+    skipCashPaymentId: String,
+    status: {
+        type: String,
+        enum: ['new', 'pending', 'paid', 'failed', 'refunded'],
+        default: 'new'
+    },
+    payUrl: String
 });
 
 const OrderItemSchema = new mongoose.Schema({
-    menuItem: {
-        type: mongoose.Schema.ObjectId,
-        ref: 'Menu',
+    foodSlug: {
+        type: String,
         required: true
     },
     foodName: {
@@ -71,13 +77,13 @@ const OrderSchema = new mongoose.Schema({
     },
     orderType: {
         type: String,
-        enum: ['dine_in', 'takeaway', 'delivery' , 'dinein'],
+        enum: ['dine_in', 'takeaway', 'delivery', 'dinein'],
         required: true
     },
     tableNumber: {
         type: String,
         required: function() {
-            return this.orderType === 'dine_in';
+            return this.orderType === 'dine_in' || this.orderType === 'dinein';
         }
     },
     user: {
@@ -112,7 +118,7 @@ const OrderSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'Paid' , 'failed', 'refunded'],
+        enum: ['pending', 'paid', 'Paid', 'failed', 'refunded'],
         default: 'pending'
     },
     paymentDetails: PaymentDetailsSchema,

@@ -39,6 +39,18 @@ exports.createOrder = async (req, res, next) => {
             return next(new AppError('User not found', 404));
         }
 
+        // Format address if provided
+        let formattedAddress = null;
+        if (req.body.deliveryAddress) {
+            formattedAddress = {
+                line1: req.body.deliveryAddress,
+                city: req.body.city || 'Not specified',
+                state: req.body.state || 'Not specified',
+                postalCode: req.body.postalCode || 'Not specified',
+                country: req.body.country || 'Not specified'
+            };
+        }
+
         // Prepare order data
         const orderData = {
             orderId: req.body.orderId,
@@ -49,10 +61,10 @@ exports.createOrder = async (req, res, next) => {
                 name: user.name,
                 email: user.email,
                 phone: user.phoneNumber,
-                address: req.body.address,
+                address: formattedAddress
             },
             items: req.body.items.map(item => ({
-                menuItem: item.menuItem,
+                foodSlug: item.foodSlug,
                 foodName: item.foodName,
                 quantity: item.quantity,
                 foodPrice: item.foodPrice,
@@ -62,14 +74,14 @@ exports.createOrder = async (req, res, next) => {
             tax: req.body.tax || 0,
             shipping: req.body.shipping || 0,
             discount: req.body.discount || 0,
-            notes: req.body.notes || "",
+            notes: req.body.specialInstructions || "",
             paymentDetails: {
-                paymentMethod: req.body.paymentDetails?.paymentMethod || "cash",
-                amountPaid: req.body.paymentDetails?.amountPaid || 0,
-                transactionId: req.body.paymentDetails?.transactionId || "",
-                skipCashPaymentId: req.body.paymentDetails?.skipCashPaymentId || "",
-                status: req.body.paymentDetails?.status || "new",
-                payUrl: req.body.paymentDetails?.payUrl || "",
+                paymentMethod: req.body.paymentMethod,
+                amountPaid: req.body.orderTotal,
+                transactionId: req.body.payment?.transactionId || "",
+                skipCashPaymentId: req.body.payment?.skipCashPaymentId || "",
+                status: req.body.payment?.status || "new",
+                payUrl: req.body.payment?.payUrl || "",
             }
         };
 
