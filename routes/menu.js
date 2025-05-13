@@ -1,6 +1,8 @@
 const express = require('express');
 const {
     getMenuItems,
+    getMenuItem,
+    getMenuItemBySlug,
     createMenuItem,
     updateMenuItem,
     deleteMenuItem
@@ -8,15 +10,16 @@ const {
 
 const router = express.Router();
 
-const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
+const { protect, authorize } = require('../middleware/auth');
 
 // Public routes
 router.get('/', getMenuItems);
-router.get('/:id', getMenuItems);
+router.get('/slug/:slug', getMenuItemBySlug);
+router.get('/:id', getMenuItem);
 
 // Admin routes
-router.post('/', verifyFirebaseToken, createMenuItem);
-router.put('/:id', verifyFirebaseToken, updateMenuItem);
-router.delete('/:id', verifyFirebaseToken, deleteMenuItem);
+router.post('/', protect, authorize('admin', 'superadmin'), createMenuItem);
+router.put('/:id', protect, authorize('admin', 'superadmin'), updateMenuItem);
+router.delete('/:id', protect, authorize('admin', 'superadmin'), deleteMenuItem);
 
 module.exports = router; 

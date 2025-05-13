@@ -1,7 +1,7 @@
 const Order = require('../models/Order');
 const Booking = require('../models/Booking');
 const Feedback = require('../models/Feedback');
-const MenuItem = require('../models/MenuItem');
+const Menu = require('../models/Menu');
 const ErrorResponse = require('../utils/errorResponse');
 
 // @desc    Get dashboard statistics
@@ -131,7 +131,7 @@ exports.getPopularItems = async (req, res, next) => {
                 .sort(([,a], [,b]) => b - a)
                 .slice(0, 5)
                 .map(async ([menuItemId, count]) => {
-                    const menuItem = await MenuItem.findById(menuItemId);
+                    const menuItem = await Menu.findById(menuItemId);
                     return {
                         menuItem,
                         count

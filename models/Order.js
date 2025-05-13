@@ -40,7 +40,8 @@ const PaymentDetailsSchema = new mongoose.Schema({
 
 const OrderItemSchema = new mongoose.Schema({
     menuItem: {
-        type: String,
+        type: mongoose.Schema.ObjectId,
+        ref: 'Menu',
         required: true
     },
     foodName: {
