@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const User = require('../models/User');
 const AppError = require('../utils/appError');
+const { emitNewOrder, emitOrderUpdate, emitOrderStatusChange } = require('../services/socketService');
 
 // @desc    Get all orders
 // @route   GET /api/orders
@@ -89,6 +90,9 @@ exports.createOrder = async (req, res, next) => {
 
         const order = await Order.create(orderData);
 
+        // Emit new order event
+        emitNewOrder('restaurant', order);
+
         res.status(201).json({
             success: true,
             data: order
@@ -147,6 +151,14 @@ exports.updateOrderStatus = async (req, res, next) => {
         }
 
         await order.save();
+
+        // Emit order status change event
+        emitOrderStatusChange('restaurant', order);
+        
+        // If it's a dine-in order, also emit to the specific table
+        if (order.orderType === 'dine_in' && order.tableNumber) {
+            emitOrderStatusChange(`table-${order.tableNumber}`, order);
+        }
 
         res.status(200).json({
             success: true,

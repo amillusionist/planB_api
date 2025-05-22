@@ -19,6 +19,7 @@ const routes = require('./config/routes');
 const { verifyFirebaseToken } = require('./middleware/firebaseAuth');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const { initializeSocket } = require('./services/socketService');
 
 // Load environment variables
 dotenv.config();
@@ -151,6 +152,9 @@ const server = app.listen(PORT, () => {
         console.error(`Port ${PORT} is already in use. Please try a different port.`);
     }
 });
+
+// Initialize Socket.IO
+initializeSocket(server);
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {

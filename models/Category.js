@@ -6,7 +6,13 @@ const categorySchema = new mongoose.Schema({
         type: String,
         required: [true, 'Category name is required'],
         trim: true,
-        unique: true
+        unique: true,
+        maxlength: [100, 'Category name cannot be more than 100 characters']
+    },
+    nameAr: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'Arabic category name cannot be more than 100 characters']
     },
     slug: {
         type: String,
@@ -14,7 +20,13 @@ const categorySchema = new mongoose.Schema({
     },
     description: {
         type: String,
-        trim: true
+        trim: true,
+        maxlength: [500, 'Description cannot be more than 500 characters']
+    },
+    descriptionAr: {
+        type: String,
+        trim: true,
+        maxlength: [500, 'Arabic description cannot be more than 500 characters']
     },
     image: {
         type: String,
@@ -30,15 +42,19 @@ const categorySchema = new mongoose.Schema({
         required: true
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
 // Pre-save middleware to create slug from name
 categorySchema.pre('save', function(next) {
-    this.slug = slugify(this.name, { 
-        lower: true,      // convert to lowercase
-        strict: true      // remove special characters
-    });
+    if (this.isModified('name')) {
+        this.slug = slugify(this.name, { 
+            lower: true,      // convert to lowercase
+            strict: true      // remove special characters
+        });
+    }
     next();
 });
 
@@ -55,7 +71,9 @@ categorySchema.pre('findOneAndUpdate', function(next) {
 
 // Add indexes for better query performance
 categorySchema.index({ name: 1 });
+categorySchema.index({ nameAr: 1 });
 categorySchema.index({ slug: 1 });
+categorySchema.index({ isActive: 1 });
 
 const Category = mongoose.model('Category', categorySchema);
 

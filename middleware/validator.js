@@ -75,15 +75,8 @@ const menuRules = {
 const orderRules = {
     create: [
         body('orderType')
-            .isIn(['dine_in', 'dinein', 'takeaway', 'delivery'])
-            .withMessage('Order type must be dine_in/dinein, takeaway, or delivery')
-            .custom((value) => {
-                // Convert 'dinein' to 'dine_in' for consistency
-                if (value === 'dinein') {
-                    return 'dine_in';
-                }
-                return value;
-            }),
+            .notEmpty()
+            .withMessage('Order type is required'),
         body('tableNumber')
             .if(body('orderType').equals('dine_in'))
             .notEmpty()
