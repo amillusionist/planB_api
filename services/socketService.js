@@ -12,9 +12,10 @@ const initializeSocket = (server) => {
     });
 
     io.on('connection', (socket) => {
-        // Handle socket events
+        console.log('New client connected');
+
         socket.on('disconnect', () => {
-            // Handle disconnect
+            console.log('Client disconnected');
         });
     });
 

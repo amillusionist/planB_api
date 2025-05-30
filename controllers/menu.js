@@ -114,6 +114,10 @@ exports.createMenuItem = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 exports.updateMenuItem = asyncHandler(async (req, res) => {
     try {
+        console.log('Raw request body:', JSON.stringify(req.body, null, 2));
+        console.log('Request headers:', req.headers);
+        console.log('Update ID:', req.params.id);
+
         // Handle categories array
         if (req.body.categories) {
             // If categories is a string (JSON), parse it

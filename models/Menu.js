@@ -53,11 +53,14 @@ const MenuSchema = new mongoose.Schema({
 
 // Pre-save middleware to create slug from name
 MenuSchema.pre('save', function(next) {
+    console.log('Pre-save middleware triggered');
+    console.log('Current name:', this.name);
     if (this.name) {
         this.slug = slugify(this.name, { 
             lower: true,      // convert to lowercase
             strict: true      // remove special characters
         });
+        console.log('Generated slug:', this.slug);
     }
     next();
 });

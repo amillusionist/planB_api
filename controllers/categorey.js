@@ -34,27 +34,24 @@ const formatCategoryByLanguage = (category, language) => {
 };
 
 // Get all categories
-exports.getCategories = async (req, res, next) => {
-    try {
-        const categories = await Category.find();
-        const targetLanguage = req.headers['accept-language']?.split(',')[0] || 'en';
-        
-        const translatedCategories = await Promise.all(
-            categories.map(async (category) => {
-                const translatedCategory = await getTranslation(category, targetLanguage);
-                return translatedCategory;
-            })
-        );
+exports.getCategories = catchAsync(async (req, res) => {
+    // Debug headers
+    console.log('All Headers:', req.headers);
+    console.log('Accept-Language:', req.headers['accept-language']);
+    
+    const categories = await Category.find({ isActive: true });
+    const targetLanguage = (req.headers['accept-language'] || 'en').toLowerCase();
+    
+    const formattedCategories = categories.map(category => 
+        formatCategoryByLanguage(category, targetLanguage)
+    );
 
-        res.status(200).json({
-            success: true,
-            count: translatedCategories.length,
-            data: translatedCategories
-        });
-    } catch (err) {
-        next(err);
-    }
-};
+    res.status(200).json({
+        status: 'success',
+        count: formattedCategories.length,
+        data: { categories: formattedCategories }
+    });
+});
 
 // Get single category
 exports.getCategory = catchAsync(async (req, res, next) => {
