@@ -2,6 +2,7 @@ const User = require('../models/User');
 const ErrorResponse = require('../utils/errorResponse');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
+const Order = require('../models/Order');
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -336,4 +337,107 @@ exports.deletePaymentMethod = catchAsync(async (req, res, next) => {
         success: true,
         data: {}
     });
-}); 
+});
+
+// @desc    Get all customers (Admin only)
+// @route   GET /api/users/customers
+// @access  Private/Admin
+exports.getAllCustomers = async (req, res, next) => {
+    try {
+        // Check if user is admin
+        if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+            return next(new AppError('Not authorized to access this route', 403));
+        }
+
+        // Get all users with role 'user'
+        const customers = await User.find({ role: 'user' })
+            .select('-password -__v') // Exclude sensitive fields
+            .sort('-createdAt');
+
+        res.status(200).json({
+            success: true,
+            count: customers.length,
+            data: customers
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get customer details by ID (Admin only)
+// @route   GET /api/users/customers/:id
+// @access  Private/Admin
+exports.getCustomerById = async (req, res, next) => {
+    try {
+        // Check if user is admin
+        if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+            return next(new AppError('Not authorized to access this route', 403));
+        }
+
+        const customer = await User.findOne({ 
+            _id: req.params.id,
+            role: 'user'
+        }).select('-password -__v');
+
+        if (!customer) {
+            return next(new AppError('Customer not found', 404));
+        }
+
+        res.status(200).json({
+            success: true,
+            data: customer
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get customer order statistics
+// @route   GET /api/users/customers/:id/statistics
+// @access  Private/Admin
+exports.getCustomerStatistics = async (req, res, next) => {
+    try {
+        // Check if user is admin
+        if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+            return next(new AppError('Not authorized to access this route', 403));
+        }
+
+        const customerId = req.params.id;
+
+        // Verify customer exists
+        const customer = await User.findOne({ 
+            _id: customerId,
+            role: 'user'
+        });
+
+        if (!customer) {
+            return next(new AppError('Customer not found', 404));
+        }
+
+        // Get order statistics
+        const orders = await Order.find({ 'user.userId': customerId });
+
+        // Calculate statistics
+        const totalOrders = orders.length;
+        const totalSpent = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const lastOrder = orders.length > 0 
+            ? orders.sort((a, b) => b.createdAt - a.createdAt)[0]
+            : null;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                totalOrders,
+                totalSpent,
+                lastOrder: lastOrder ? {
+                    orderId: lastOrder.orderId,
+                    totalAmount: lastOrder.totalAmount,
+                    status: lastOrder.orderStatus,
+                    createdAt: lastOrder.createdAt
+                } : null
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+}; 

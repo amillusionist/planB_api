@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifyFirebaseToken } = require('../middleware/firebaseAuth');
+const { protectWithBoth } = require('../middleware/auth');
 const {
     getProfile,
     updateProfile,
@@ -9,24 +9,29 @@ const {
     deleteAddress,
     addPaymentMethod,
     updatePaymentMethod,
-    deletePaymentMethod
+    deletePaymentMethod,
+    getAllCustomers,
+    getCustomerById,
+    getCustomerStatistics
 } = require('../controllers/user');
 
-// Apply Firebase token verification to all routes
-router.use(verifyFirebaseToken);
+// Customer management routes (Admin only)
+router.get('/customers', protectWithBoth, getAllCustomers);
+router.get('/customers/:id', protectWithBoth, getCustomerById);
+router.get('/customers/:id/statistics', protectWithBoth, getCustomerStatistics);
 
-// Profile routes
-router.get('/profile', getProfile);
-router.put('/profile', updateProfile);
+// User profile routes
+router.get('/profile', protectWithBoth, getProfile);
+router.put('/profile', protectWithBoth, updateProfile);
 
-// Address routes
-router.post('/addresses', addAddress);
-router.put('/addresses/:id', updateAddress);
-router.delete('/addresses/:id', deleteAddress);
+// Address management routes
+router.post('/addresses', protectWithBoth, addAddress);
+router.put('/addresses/:id', protectWithBoth, updateAddress);
+router.delete('/addresses/:id', protectWithBoth, deleteAddress);
 
-// Payment method routes
-router.post('/payment-methods', addPaymentMethod);
-router.put('/payment-methods/:id', updatePaymentMethod);
-router.delete('/payment-methods/:id', deletePaymentMethod);
+// Payment method management routes
+router.post('/payment-methods', protectWithBoth, addPaymentMethod);
+router.put('/payment-methods/:id', protectWithBoth, updatePaymentMethod);
+router.delete('/payment-methods/:id', protectWithBoth, deletePaymentMethod);
 
 module.exports = router; 

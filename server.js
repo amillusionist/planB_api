@@ -25,99 +25,53 @@ const { initializeSocket } = require('./services/socketService');
 dotenv.config();
 
 // Connect to database
-connectDB().then(() => {
-    console.log('Database connected successfully');
-}).catch(err => {
-    console.error('Database connection failed:', err);
-    process.exit(1);
-});
+connectDB();
 
 // Constants
 const {
-    PORT = 5000,
     NODE_ENV = 'development',
     MONGODB_URI = 'mongodb://localhost:27017/planb_cafe',
     CLIENT_URL = 'http://localhost:3000'
 } = process.env;
 
-
+const PORT = process.env.PORT || 5000;
 const app = express();
+const server = require('http').createServer(app);
 
-// Basic error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({
-        success: false,
-        error: 'Internal Server Error'
-    });
-});
+// Initialize Socket.IO
+const io = initializeSocket(server);
 
 // Security middleware
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", 'data:', 'https:'],
-            connectSrc: ["'self'"],
-            fontSrc: ["'self'"],
-            objectSrc: ["'none'"],
-            mediaSrc: ["'self'"],
-            frameSrc: ["'none'"]
-        }
-    }
-}));
-
-// Prevent XSS attacks
-app.use(xss());
-
-// Prevent parameter pollution
-app.use(hpp());
-
-// Sanitize data
-app.use(mongoSanitize());
-
-// CORS configuration
+app.use(helmet());
 app.use(cors({
-    origin: ['https://walrus-app-at4vl.ondigitalocean.app', 'http://localhost:3000'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    origin: [CLIENT_URL, 'http://localhost:5173', 'https://walrus-app-at4vl.ondigitalocean.app'],
+    credentials: true
 }));
+app.use(mongoSanitize());
+app.use(xss());
+app.use(hpp());
 
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again after 15 minutes'
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
 });
+app.use('/api/', limiter);
 
-// Apply rate limiting to all routes
-app.use(limiter);
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Special rate limiting for sensitive routes
-const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 50, // limit each IP to 5 requests per hour
-    message: 'Too many login attempts, please try again after an hour'
-});
-
-// Apply auth rate limiting to auth routes
-app.use('/api/auth', authLimiter);
-
-// Body parser middleware
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+// Cookie parser
 app.use(cookieParser());
 
-// Compression middleware
+// Compression
 app.use(compression());
 
-// Input sanitization
+// Sanitize user input
 app.use(sanitizeUserInput);
 
-// Dev logging middleware
+// Logging
 if (NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
@@ -125,53 +79,15 @@ if (NODE_ENV === 'development') {
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/orders', require('./routes/orders'));
-app.use('/api/menu', require('./routes/menu'));
-app.use('/api/categorey', require('./routes/categorey'));
-app.use('/api/payment', require('./routes/payment'));
 app.use('/api/room-bookings', require('./routes/roomBooking'));
 app.use('/api/rooms', require('./routes/rooms'));
+app.use('/api/menu', require('./routes/menu'));
+app.use('/api/categorey', require('./routes/categorey'));
 
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({
-        success: false,
-        error: err.message || 'Internal Server Error'
-    });
-});
+// Error handling
+app.use(errorHandler);
 
 // Start server
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running in ${NODE_ENV} mode on port ${PORT}`);
-    console.log(`API available at http://localhost:${PORT}/api`);
-}).on('error', (err) => {
-    console.error('Server failed to start:', err);
-    if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use. Please try a different port.`);
-    }
-});
-
-// Initialize Socket.IO
-initializeSocket(server);
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-    console.error('Unhandled Promise Rejection:', err);
-    server.close(() => process.exit(1));
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
-    server.close(() => process.exit(1));
-});
-
-// Keep the process alive
-setInterval(() => {
-    if (process.memoryUsage().heapUsed > 500 * 1024 * 1024) {
-        console.log('Memory usage high, performing garbage collection');
-        global.gc();
-    }
-}, 30000); 
+}); 

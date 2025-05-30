@@ -19,7 +19,12 @@ const { protect, authorize } = require('../middleware/auth');
 router.use(translateResponse);
 
 // Public routes
-router.get('/', getMenuItems);
+router.get('/', (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+}, getMenuItems);
 router.get('/slug/:slug', getMenuItemBySlug);
 router.get('/:id', getMenuItem);
 

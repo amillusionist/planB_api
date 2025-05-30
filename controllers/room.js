@@ -1,5 +1,7 @@
 const Room = require('../models/Room');
 const ErrorResponse = require('../utils/errorResponse');
+const RoomBooking = require('../models/RoomBooking');
+const AppError = require('../utils/appError');
 
 // @desc    Get all rooms
 // @route   GET /api/rooms
@@ -173,6 +175,158 @@ exports.deleteRoomPhoto = async (req, res, next) => {
         res.status(200).json({
             success: true,
             data: room
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get all bookings (Admin only)
+// @route   GET /api/rooms/admin/bookings/active
+// @access  Private/Admin
+exports.getAllActiveBookings = async (req, res, next) => {
+    try {
+        // Check if user is admin
+        if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+            return next(new AppError('Not authorized to access this route', 403));
+        }
+
+        const bookings = await RoomBooking.find()
+            .populate('userId', 'name email phone')
+            .populate('roomId', 'name capacity')
+            .sort('-startTime');
+
+        res.status(200).json({
+            success: true,
+            count: bookings.length,
+            data: bookings
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get booking statistics (Admin only)
+// @route   GET /api/rooms/admin/bookings/statistics
+// @access  Private/Admin
+exports.getBookingStatistics = async (req, res, next) => {
+    try {
+        // Check if user is admin
+        if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+            return next(new AppError('Not authorized to access this route', 403));
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Get today's bookings
+        const todayBookings = await RoomBooking.countDocuments({
+            startTime: { $gte: today }
+        });
+
+        // Get total rooms
+        const totalRooms = await Room.countDocuments();
+
+        // Get occupied rooms
+        const occupiedRooms = await Room.countDocuments({
+            status: 'occupied'
+        });
+
+        // Get available rooms
+        const availableRooms = await Room.countDocuments({
+            status: 'available'
+        });
+
+        // Get monthly statistics
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const monthlyBookings = await RoomBooking.countDocuments({
+            startTime: { $gte: firstDayOfMonth }
+        });
+
+        // Calculate total revenue for the month
+        const monthlyRevenue = await RoomBooking.aggregate([
+            {
+                $match: {
+                    startTime: { $gte: firstDayOfMonth },
+                    status: 'completed'
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$amount' }
+                }
+            }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                todayBookings,
+                totalRooms,
+                occupiedRooms,
+                availableRooms,
+                monthlyBookings,
+                monthlyRevenue: monthlyRevenue[0]?.total || 0
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get bookings for a specific room (Admin only)
+// @route   GET /api/rooms/admin/rooms/:id/bookings
+// @access  Private/Admin
+exports.getRoomBookings = async (req, res, next) => {
+    try {
+        // Check if user is admin
+        if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+            return next(new AppError('Not authorized to access this route', 403));
+        }
+
+        const roomId = req.params.id;
+
+        // Verify room exists
+        const room = await Room.findById(roomId);
+        if (!room) {
+            return next(new AppError('Room not found', 404));
+        }
+
+        // Get all bookings for this room
+        const bookings = await RoomBooking.find({ roomId })
+            .populate('userId', 'name email phone')
+            .sort('-startTime');
+
+        res.status(200).json({
+            success: true,
+            count: bookings.length,
+            data: bookings
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// @desc    Get all bookings with complete data (Admin only)
+// @route   GET /api/rooms/admin/bookings
+// @access  Private/Admin
+exports.getAllBookings = async (req, res, next) => {
+    try {
+        // Check if user is admin
+        if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+            return next(new AppError('Not authorized to access this route', 403));
+        }
+
+        const bookings = await RoomBooking.find()
+            .populate('user', 'name email phone')
+            .populate('room', 'name capacity amenities')
+            .sort('-createdAt');
+
+        res.status(200).json({
+            success: true,
+            count: bookings.length,
+            data: bookings
         });
     } catch (err) {
         next(err);

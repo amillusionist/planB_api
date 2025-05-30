@@ -5,29 +5,16 @@ let io;
 const initializeSocket = (server) => {
     io = socketIO(server, {
         cors: {
-            origin: ['https://walrus-app-at4vl.ondigitalocean.app', 'http://localhost:3000'],
+            origin: ['https://walrus-app-at4vl.ondigitalocean.app', 'http://localhost:3000', 'http://localhost:5173'],
             methods: ['GET', 'POST'],
             credentials: true
         }
     });
 
     io.on('connection', (socket) => {
-        console.log('New client connected');
-
-        // Join a room (e.g., for specific restaurant or table)
-        socket.on('joinRoom', (roomId) => {
-            socket.join(roomId);
-            console.log(`Client joined room: ${roomId}`);
-        });
-
-        // Leave a room
-        socket.on('leaveRoom', (roomId) => {
-            socket.leave(roomId);
-            console.log(`Client left room: ${roomId}`);
-        });
-
+        // Handle socket events
         socket.on('disconnect', () => {
-            console.log('Client disconnected');
+            // Handle disconnect
         });
     });
 

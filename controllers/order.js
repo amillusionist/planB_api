@@ -5,15 +5,17 @@ const { emitNewOrder, emitOrderUpdate, emitOrderStatusChange } = require('../ser
 
 // @desc    Get all orders
 // @route   GET /api/orders
-// @access  Private
+// @access  Private (Firebase token for users, JWT for superadmin)
 exports.getOrders = async (req, res, next) => {
     try {
         let query;
-        // If user is not admin, only show their orders
-        if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-            query = Order.find({ 'user.userId': req.user.id });
-        } else {
+        
+        // If user is superadmin (JWT token), show all orders
+        if (req.user.role === 'superadmin') {
             query = Order.find();
+        } else {
+            // For regular users (Firebase token), only show their orders
+            query = Order.find({ 'user.userId': req.user._id });
         }
 
         const orders = await query.sort('-createdAt');
@@ -105,17 +107,19 @@ exports.createOrder = async (req, res, next) => {
 
 // @desc    Get single order
 // @route   GET /api/orders/:id
-// @access  Private
+// @access  Private (Firebase token for users, JWT for superadmin)
 exports.getOrder = async (req, res, next) => {
     try {
         const order = await Order.findOne({ orderId: req.params.id });
         if (!order) {
             return next(new AppError(`Order not found with id of ${req.params.id}`, 404));
         }
-        // Make sure user is order owner or admin
-        if (order.user.userId.toString() !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+
+        // Check if user is authorized to view this order
+        if (order.user.userId.toString() !== req.user._id.toString() && req.user.role !== 'superadmin') {
             return next(new AppError(`Not authorized to access this order`, 401));
         }
+
         res.status(200).json({
             success: true,
             data: order
@@ -127,12 +131,17 @@ exports.getOrder = async (req, res, next) => {
 
 // @desc    Update order status
 // @route   PUT /api/orders/:id/status
-// @access  Private/Admin
+// @access  Private (Firebase token for users, JWT for superadmin)
 exports.updateOrderStatus = async (req, res, next) => {
     try {
         const order = await Order.findOne({ orderId: req.params.id });
         if (!order) {
             return next(new AppError(`Order not found with id of ${req.params.id}`, 404));
+        }
+
+        // Only superadmin can update any order status
+        if (req.user.role !== 'superadmin') {
+            return next(new AppError(`Not authorized to update order status`, 401));
         }
 
         // Update order status

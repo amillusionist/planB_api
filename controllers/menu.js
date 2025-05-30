@@ -158,7 +158,6 @@ exports.updateMenuItem = asyncHandler(async (req, res) => {
             data: menuItem
         });
     } catch (error) {
-        console.error('Error updating menu item:', error);
         if (error.code === 11000) {
             res.status(400).json({
                 success: false,

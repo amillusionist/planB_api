@@ -1,6 +1,9 @@
 const Category = require('../models/Category');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const path = require('path');
+const { getTranslation } = require('../services/translationService');
+const fs = require('fs');
 
 // Helper function to format category based on language
 const formatCategoryByLanguage = (category, language) => {
@@ -31,28 +34,27 @@ const formatCategoryByLanguage = (category, language) => {
 };
 
 // Get all categories
-exports.getCategories = catchAsync(async (req, res) => {
-    // Debug headers
-    console.log('All Headers:', req.headers);
-    console.log('Accept-Language:', req.headers['accept-language']);
-    
-    const categories = await Category.find({ isActive: true });
-    const targetLanguage = (req.headers['accept-language'] || 'en').toLowerCase();
-    
-    // Debug language
-    console.log('Target Language:', targetLanguage);
-    
-    // Format categories based on language
-    const formattedCategories = categories.map(category => 
-        formatCategoryByLanguage(category, targetLanguage)
-    );
-    
-    res.status(200).json({
-        status: 'success',
-        results: formattedCategories.length,
-        data: { categories: formattedCategories }
-    });
-});
+exports.getCategories = async (req, res, next) => {
+    try {
+        const categories = await Category.find();
+        const targetLanguage = req.headers['accept-language']?.split(',')[0] || 'en';
+        
+        const translatedCategories = await Promise.all(
+            categories.map(async (category) => {
+                const translatedCategory = await getTranslation(category, targetLanguage);
+                return translatedCategory;
+            })
+        );
+
+        res.status(200).json({
+            success: true,
+            count: translatedCategories.length,
+            data: translatedCategories
+        });
+    } catch (err) {
+        next(err);
+    }
+};
 
 // Get single category
 exports.getCategory = catchAsync(async (req, res, next) => {
@@ -72,45 +74,41 @@ exports.getCategory = catchAsync(async (req, res, next) => {
 exports.createCategory = catchAsync(async (req, res, next) => {
     req.body.createdBy = req.user._id;
 
-    // Ensure name and description are present in at least one language
-    if (!req.body.name && !req.body.nameAr) {
-        return next(new AppError('Category name (English or Arabic) is required', 400));
-    }
-    if (!req.body.description && !req.body.descriptionAr) {
-        return next(new AppError('Category description (English or Arabic) is required', 400));
-    }
-
-    // If Arabic fields are missing, copy from English
-    if (!req.body.nameAr && req.body.name) {
-        req.body.nameAr = req.body.name;
-    }
-    if (!req.body.descriptionAr && req.body.description) {
-        req.body.descriptionAr = req.body.description;
+    // Handle file upload
+    if (req.file) {
+        // Create relative path for the image using forward slashes
+        const relativePath = path.join('uploads', 'categories', req.file.filename).replace(/\\/g, '/');
+        req.body.image = relativePath;
+    } else if (!req.body.image) {
+        return next(new AppError('Category image is required', 400));
     }
 
-    // If English fields are missing, copy from Arabic
-    if (!req.body.name && req.body.nameAr) {
-        req.body.name = req.body.nameAr;
+    // Ensure name and description are present
+    if (!req.body.name) {
+        return next(new AppError('Category name is required', 400));
     }
-    if (!req.body.description && req.body.descriptionAr) {
-        req.body.description = req.body.descriptionAr;
+    if (!req.body.description) {
+        return next(new AppError('Category description is required', 400));
     }
 
     // Trim fields
-    if (req.body.nameAr) {
-        req.body.nameAr = req.body.nameAr.trim();
-    }
-    if (req.body.descriptionAr) {
-        req.body.descriptionAr = req.body.descriptionAr.trim();
-    }
-    if (req.body.name) {
-        req.body.name = req.body.name.trim();
-    }
-    if (req.body.description) {
-        req.body.description = req.body.description.trim();
-    }
+    req.body.name = req.body.name.trim();
+    req.body.description = req.body.description.trim();
 
-    const category = await Category.create(req.body);
+    // Get Arabic translations
+    const nameAr = await getTranslation(req.body.name, 'ar');
+    const descriptionAr = await getTranslation(req.body.description, 'ar');
+
+    // Create category with both English and Arabic fields
+    const category = await Category.create({
+        name: req.body.name,
+        nameAr: nameAr,
+        description: req.body.description,
+        descriptionAr: descriptionAr,
+        image: req.body.image,
+        createdBy: req.body.createdBy
+    });
+
     const targetLanguage = (req.headers['accept-language'] || 'en').toLowerCase();
     const formattedCategory = formatCategoryByLanguage(category, targetLanguage);
 
@@ -122,21 +120,37 @@ exports.createCategory = catchAsync(async (req, res, next) => {
 
 // Update category
 exports.updateCategory = catchAsync(async (req, res, next) => {
-    // Handle translations if provided
-    if (req.body.nameAr) {
-        req.body.nameAr = req.body.nameAr.trim();
+    // Handle file upload
+    if (req.file) {
+        // Create relative path for the image using forward slashes
+        const relativePath = path.join('uploads', 'categories', req.file.filename).replace(/\\/g, '/');
+        req.body.image = relativePath;
     }
-    if (req.body.descriptionAr) {
-        req.body.descriptionAr = req.body.descriptionAr.trim();
+
+    // Get current category
+    const currentCategory = await Category.findById(req.params.id);
+    if (!currentCategory) {
+        return next(new AppError('No category found with that ID', 404));
+    }
+
+    // Prepare update data
+    const updateData = { ...req.body };
+
+    // If name or description is being updated, translate them
+    if (req.body.name && req.body.name !== currentCategory.name) {
+        updateData.name = req.body.name.trim();
+        updateData.nameAr = await getTranslation(updateData.name, 'ar');
+    }
+    if (req.body.description && req.body.description !== currentCategory.description) {
+        updateData.description = req.body.description.trim();
+        updateData.descriptionAr = await getTranslation(updateData.description, 'ar');
     }
     
     const category = await Category.findByIdAndUpdate(
         req.params.id,
-        req.body,
+        updateData,
         { new: true, runValidators: true }
     );
-    
-    if (!category) return next(new AppError('No category found with that ID', 404));
     
     const targetLanguage = (req.headers['accept-language'] || 'en').toLowerCase();
     const formattedCategory = formatCategoryByLanguage(category, targetLanguage);
@@ -147,7 +161,7 @@ exports.updateCategory = catchAsync(async (req, res, next) => {
     });
 });
 
-// Delete category
+// Delete category (soft delete)
 exports.deleteCategory = catchAsync(async (req, res, next) => {
     const category = await Category.findByIdAndUpdate(
         req.params.id,
@@ -156,4 +170,22 @@ exports.deleteCategory = catchAsync(async (req, res, next) => {
     );
     if (!category) return next(new AppError('No category found with that ID', 404));
     res.status(204).json({ status: 'success', data: null });
+});
+
+// Restore category
+exports.restoreCategory = catchAsync(async (req, res, next) => {
+    const category = await Category.findByIdAndUpdate(
+        req.params.id,
+        { isActive: true },
+        { new: true }
+    );
+    if (!category) return next(new AppError('No category found with that ID', 404));
+    
+    const targetLanguage = (req.headers['accept-language'] || 'en').toLowerCase();
+    const formattedCategory = formatCategoryByLanguage(category, targetLanguage);
+    
+    res.status(200).json({
+        status: 'success',
+        data: { category: formattedCategory }
+    });
 });

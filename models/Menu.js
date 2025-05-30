@@ -53,28 +53,22 @@ const MenuSchema = new mongoose.Schema({
 
 // Pre-save middleware to create slug from name
 MenuSchema.pre('save', function(next) {
-    console.log('Pre-save middleware triggered');
-    console.log('Current name:', this.name);
     if (this.name) {
         this.slug = slugify(this.name, { 
             lower: true,      // convert to lowercase
             strict: true      // remove special characters
         });
-        console.log('Generated slug:', this.slug);
     }
     next();
 });
 
-// Also handle slug generation on update
+// Pre-findOneAndUpdate middleware to update slug
 MenuSchema.pre('findOneAndUpdate', function(next) {
-    console.log('Pre-findOneAndUpdate middleware triggered');
-    console.log('Update data:', this._update);
     if (this._update.name) {
         this._update.slug = slugify(this._update.name, {
             lower: true,
             strict: true
         });
-        console.log('Generated slug for update:', this._update.slug);
     }
     next();
 });
