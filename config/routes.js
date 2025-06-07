@@ -309,13 +309,13 @@ const routes = {
             path: '/create',
             method: 'post',
             handler: 'initiatePayment',
-            middleware: []
+            middleware: ['verifyFirebaseToken']
         },
         {
             path: '/verify/:paymentId',
             method: 'get',
             handler: 'verifyPayment',
-            middleware: []
+            middleware: ['verifyFirebaseToken']
         },
         {
             path: '/webhook',

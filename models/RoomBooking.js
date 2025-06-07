@@ -2,8 +2,7 @@ const mongoose = require('mongoose');
 
 const roomBookingSchema = new mongoose.Schema({
     user: {
-        type: mongoose.Schema.ObjectId,
-        ref: 'User',
+        type: String,
         required: true
     },
     room: {
@@ -31,6 +30,38 @@ const roomBookingSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'approved', 'rejected', 'completed'],
         default: 'pending'
+    },
+    customerName: {
+        type: String,
+        required: true
+    },
+    customerPhone: {
+        type: String,
+        required: true
+    },
+    customerEmail: {
+        type: String,
+        required: true
+    },
+    amount: {
+        type: Number,
+        required: true
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'failed', 'refunded'],
+        default: 'pending'
+    },
+    paymentDetails: {
+        transactionId: String,
+        status: {
+            type: String,
+            enum: ['pending', 'paid', 'failed', 'refunded'],
+            default: 'pending'
+        },
+        amount: Number,
+        paymentMethod: String,
+        paymentDate: Date
     },
     createdAt: {
         type: Date,

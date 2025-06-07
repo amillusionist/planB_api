@@ -74,16 +74,12 @@ const menuRules = {
 // Order validation rules
 const orderRules = {
     create: [
-        body('orderType')
+        body('orderId')
             .notEmpty()
-            .withMessage('Order type is required'),
-        body('tableNumber')
-            .if(body('orderType').equals('dine_in'))
-            .notEmpty()
-            .withMessage('Table number is required for dine-in orders'),
+            .withMessage('Order ID is required'),
         body('items')
-            .isArray({ min: 1 })
-            .withMessage('Order must contain at least 1 item'),
+            .isArray()
+            .withMessage('Items must be an array'),
         body('items.*.foodSlug')
             .notEmpty()
             .withMessage('Food slug is required'),
@@ -102,21 +98,23 @@ const orderRules = {
         body('orderTotal')
             .isFloat({ min: 0 })
             .withMessage('Order total must be a positive number'),
+        body('orderType')
+            .custom((value) => {
+                const normalizedValue = value.toLowerCase().replace(/\s+/g, '_');
+                return ['dine_in', 'takeaway', 'delivery', 'online'].includes(normalizedValue);
+            })
+            .withMessage('Invalid order type. Must be one of: Dine In, Takeaway, Delivery, Online'),
+        body('tableNumber')
+            .if(body('orderType').custom(value => value.toLowerCase().replace(/\s+/g, '_') === 'dine_in'))
+            .notEmpty()
+            .withMessage('Table number is required for dine-in orders'),
+        body('deliveryAddress')
+            .if(body('orderType').custom(value => value.toLowerCase().replace(/\s+/g, '_') === 'delivery'))
+            .notEmpty()
+            .withMessage('Delivery address is required for delivery orders'),
         body('paymentMethod')
             .isIn(['online', 'cash'])
-            .withMessage('Payment method must be online or cash'),
-        body('payment.transactionId')
-            .if(body('paymentMethod').equals('online'))
-            .notEmpty()
-            .withMessage('Transaction ID is required for online payments'),
-        body('payment.payUrl')
-            .if(body('paymentMethod').equals('online'))
-            .notEmpty()
-            .withMessage('Payment URL is required for online payments'),
-        body('payment.status')
-            .if(body('paymentMethod').equals('online'))
-            .isIn(['new', 'pending', 'paid', 'failed', 'refunded'])
-            .withMessage('Invalid payment status')
+            .withMessage('Payment method must be online or cash')
     ]
 };
 

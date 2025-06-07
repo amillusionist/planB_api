@@ -38,14 +38,21 @@ const PORT = process.env.PORT || 5000;
 const app = express();
 const server = require('http').createServer(app);
 
+// Trust proxy
+app.set('trust proxy', 1);
+
 // Initialize Socket.IO
 const io = initializeSocket(server);
 
 // Security middleware
 app.use(helmet());
 app.use(cors({
-    origin: [CLIENT_URL, 'http://localhost:5173', 'https://walrus-app-at4vl.ondigitalocean.app'],
-    credentials: true
+    origin: NODE_ENV === 'development' 
+        ? true  // Allow all origins in development
+        : [CLIENT_URL, 'http://localhost:5173', 'https://walrus-app-at4vl.ondigitalocean.app'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(mongoSanitize());
 app.use(xss());
@@ -83,6 +90,8 @@ app.use('/api/room-bookings', require('./routes/roomBooking'));
 app.use('/api/rooms', require('./routes/rooms'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/categorey', require('./routes/categorey'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/payment', require('./routes/payment'));
 
 // Error handling
 app.use(errorHandler);

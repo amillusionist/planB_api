@@ -3,6 +3,7 @@ const AppError = require('../utils/appError');
 const User = require('../models/User');
 
 exports.verifyFirebaseToken = async (req, res, next) => {
+    console.log('verifyFirebaseToken called', req.method, req.originalUrl);
     try {
         // Check if Firebase Admin is initialized
         if (!admin.apps.length) {

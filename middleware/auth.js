@@ -15,7 +15,11 @@ exports.protectWithBoth = async (req, res, next) => {
         }
 
         if (!token) {
-            return next(new AppError('No token provided', 401));
+            return res.status(401).json({
+                success: false,
+                message: 'No token provided',
+                code: 'AUTH_NO_TOKEN'
+            });
         }
 
         // Try JWT verification first
@@ -25,6 +29,7 @@ exports.protectWithBoth = async (req, res, next) => {
             
             if (user && user.role === 'superadmin') {
                 req.user = user;
+                req.firebaseUser = { uid: user.firebaseUid }; // Set firebaseUser for consistency
                 return next();
             }
         } catch (jwtError) {
@@ -34,17 +39,30 @@ exports.protectWithBoth = async (req, res, next) => {
                 user = await User.findOne({ firebaseUid: decodedToken.uid });
                 
                 if (!user) {
-                    return next(new AppError('User not found', 401));
+                    return res.status(401).json({
+                        success: false,
+                        message: 'User not found',
+                        code: 'AUTH_USER_NOT_FOUND'
+                    });
                 }
                 
                 req.user = user;
+                req.firebaseUser = decodedToken;
                 return next();
             } catch (firebaseError) {
-                return next(new AppError('Invalid token', 401));
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid or expired token',
+                    code: 'AUTH_TOKEN_INVALID'
+                });
             }
         }
     } catch (err) {
-        return next(new AppError('Authentication failed', 401));
+        return res.status(401).json({
+            success: false,
+            message: 'Authentication failed',
+            code: 'AUTH_FAILED'
+        });
     }
 };
 
@@ -59,7 +77,8 @@ exports.protect = async (req, res, next) => {
     if (!token) {
         return res.status(401).json({
             success: false,
-            message: 'Not authorized to access this route'
+            message: 'Not authorized to access this route',
+            code: 'AUTH_NO_TOKEN'
         });
     }
 
@@ -72,7 +91,8 @@ exports.protect = async (req, res, next) => {
         if (!req.user) {
             return res.status(401).json({
                 success: false,
-                message: 'User not found'
+                message: 'User not found',
+                code: 'AUTH_USER_NOT_FOUND'
             });
         }
 
@@ -80,7 +100,8 @@ exports.protect = async (req, res, next) => {
     } catch (err) {
         return res.status(401).json({
             success: false,
-            message: 'Not authorized to access this route'
+            message: 'Invalid or expired token',
+            code: 'AUTH_TOKEN_INVALID'
         });
     }
 };
