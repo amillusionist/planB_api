@@ -1,15 +1,11 @@
 const admin = require('../config/firebaseAdmin');
 const AppError = require('../utils/appError');
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 
 exports.verifyFirebaseToken = async (req, res, next) => {
     console.log('verifyFirebaseToken called', req.method, req.originalUrl);
     try {
-        // Check if Firebase Admin is initialized
-        if (!admin.apps.length) {
-            throw new Error('Firebase Admin not initialized');
-        }
-
         // Get token from header
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -17,6 +13,26 @@ exports.verifyFirebaseToken = async (req, res, next) => {
         }
 
         const token = authHeader.split(' ')[1];
+
+        // First try JWT for superadmin
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = await User.findById(decoded.id);
+            
+            if (user && user.role === 'superadmin') {
+                req.user = user;
+                req.firebaseUser = { uid: user.firebaseUid };
+                return next();
+            }
+        } catch (jwtError) {
+            // If JWT fails, continue to Firebase verification
+            console.log('JWT verification failed, trying Firebase');
+        }
+
+        // If not superadmin or JWT failed, try Firebase token
+        if (!admin.apps.length) {
+            throw new Error('Firebase Admin not initialized');
+        }
 
         // Verify Firebase token
         const decodedToken = await admin.auth().verifyIdToken(token);
